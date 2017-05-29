@@ -67,6 +67,8 @@ func (t *SimpleChaincode) Invoke(stub shim.ChaincodeStubInterface, function stri
 		return t.write(stub, args)
 	} else if  function == "startShipment" {
 		return t.addNewShipment(stub, args)
+	}else if  function == "transferOwner" {
+		return t.transferOwner(stub, args)
 	}
 	fmt.Println("invoke did not find func: " + function)
 
@@ -136,7 +138,7 @@ func (t *SimpleChaincode) addNewShipment(stub shim.ChaincodeStubInterface, args 
 	
 	//   0       1       2     3
 	// "asdf", "blue", "35", "bob"
-	if len(args) != 9 {
+	if len(args) != 3 {
 		return nil, errors.New("Incorrect number of arguments. Expecting 9")
 	}
 	fmt.Println("- adding new Shipment")
@@ -189,3 +191,27 @@ func (t *SimpleChaincode) addNewShipment(stub shim.ChaincodeStubInterface, args 
 	return jsonAsBytes, nil
 }
 
+func (t *SimpleChaincode) transferOwner(stub shim.ChaincodeStubInterface, args []string) ([]byte, error){
+
+var jsonResp string 
+valAsbytes, err := stub.GetState("BlueShipment")
+	if err != nil {
+		jsonResp = "{\"Error\":\"Failed to get state for " + "BlueShipment" + "\"}"
+		return nil, errors.New(jsonResp)
+	}
+	var currentShipment Shipment
+	json.Unmarshal(valAsbytes, &currentShipment)	
+
+	
+	if(currentShipment.MaximumTemperatureRecorded < currentShipment.TemperatureThreshold){
+		currentShipment.CurrentOwner =args[0]
+		updatedShipmentJsonAsBytes, _  := json.Marshal(currentShipment)
+		err = stub.PutState("BlueShipment", updatedShipmentJsonAsBytes)	
+		fmt.Println("owner changed")
+		return updatedShipmentJsonAsBytes, nil
+		}else{
+		fmt.Println("Contract Breached")
+		}
+	
+	return nil, nil
+}
