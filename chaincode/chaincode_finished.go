@@ -35,6 +35,11 @@ type Shipment struct{
         TemperatureThreshold int `json:"TemperatureThreshold"`
 }
 
+type ContractStatus struct{
+		StatusMsg string `json:"StatusMsg"`
+        Status int `json:"Status"`
+}
+
 func main() {
 	err := shim.Start(new(SimpleChaincode))
 	if err != nil {
@@ -201,15 +206,24 @@ valAsbytes, err := stub.GetState("BlueShipment")
 	}
 	var currentShipment Shipment
 	json.Unmarshal(valAsbytes, &currentShipment)	
-
+	NewContractStatus := ContractStatus{}
 	
 	if(currentShipment.MaximumTemperatureRecorded < currentShipment.TemperatureThreshold){
 		currentShipment.CurrentOwner =args[0]
 		updatedShipmentJsonAsBytes, _  := json.Marshal(currentShipment)
 		err = stub.PutState("BlueShipment", updatedShipmentJsonAsBytes)	
 		fmt.Println("owner changed")
-		return updatedShipmentJsonAsBytes, nil
+		NewContractStatus.Status=1
+		NewContractStatus.StatusMsg="Contract Success"
+		newContractStatusJsonAsBytes, _  := json.Marshal(NewContractStatus)
+		err = stub.PutState("ContractDetails", newContractStatusJsonAsBytes)	
+		
+		return newContractStatusJsonAsBytes, nil
 		}else{
+		NewContractStatus.Status=0
+		NewContractStatus.StatusMsg="Contract Breached by:"+ currentShipment.CurrentOwner
+		newContractStatusJsonAsBytes, _  := json.Marshal(NewContractStatus)
+		err = stub.PutState("ContractDetails", newContractStatusJsonAsBytes)	
 		fmt.Println("Contract Breached")
 		}
 	
